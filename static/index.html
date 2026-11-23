@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SyllabusPulse — Adaptive Weak-Spot Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/70 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-indigo-400">SyllabusPulse</h1>
+        <p class="text-xs text-slate-400">Adaptive Weak-Spot & Exam Simulator</p>
+      </div>
+      <span id="statusBadge" class="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-300">
+        Step 1: Upload Syllabus PDF
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-8 space-y-8">
+
+    <!-- STEP 1: Upload Section -->
+    <section id="uploadSection" class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center">
+      <h2 class="text-2xl font-semibold mb-2">Upload Your Lecture Notes or Syllabus PDF</h2>
+      <p class="text-slate-400 text-sm max-w-xl mx-auto mb-6">
+        We extract your exact syllabus units, generate a diagnostic quiz, map your weak spots into Red/Amber/Green tiers, and build instant fix-it lessons.
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <input type="file" id="pdfInput" accept=".pdf"
+          class="block text-sm text-slate-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer" />
+        <button id="generateBtn" onclick="uploadAndStart()"
+          class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-semibold rounded-lg text-sm transition disabled:opacity-50">
+          Generate Diagnostic Test
+        </button>
+      </div>
+      <p id="loadingMsg" class="hidden mt-4 text-sm text-indigo-400 animate-pulse">
+        Reading PDF pages & building unit-tagged diagnostic questions...
+      </p>
+    </section>
+
+    <!-- STEP 2: Diagnostic Quiz Section -->
+    <section id="quizSection" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold">Diagnostic Exam (Syllabus-Grounded)</h2>
+        <span class="text-xs text-slate-400">Answer all questions to generate your Mastery Radar</span>
+      </div>
+      <div id="questionsContainer" class="space-y-5"></div>
+      <button onclick="evaluateQuiz()"
+        class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-xl transition">
+        Submit & Diagnose My Weak Spots
+      </button>
+    </section>
+
+    <!-- STEP 3: Red / Amber / Green Mastery Radar -->
+    <section id="radarSection" class="hidden space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-xl font-semibold mb-1">Unit Mastery Radar</h2>
+        <p class="text-sm text-slate-400 mb-6">Units are classified automatically based on your diagnostic accuracy and conceptual gaps.</p>
+        <div id="radarGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- Misconception Breakdown -->
+      <div id="misconceptionBox" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <h3 class="text-lg font-semibold text-rose-400">Misconception Diagnosis</h3>
+        <div id="misconceptionList" class="space-y-3 text-sm"></div>
+      </div>
+    </section>
+
+    <!-- STEP 4: Fix-It Micro-Lesson & Redemption Drill -->
+    <section id="fixItSection" class="hidden bg-slate-900 border border-rose-500/40 rounded-2xl p-6 space-y-6">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <span class="text-xs uppercase tracking-wider text-rose-400 font-bold">Fix-It Mode</span>
+          <h2 id="fixItTitle" class="text-xl font-semibold mt-1">Remedial Micro-Lesson</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="downloadNotesBtn" onclick="downloadRevisionSheet()" class="hidden px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition">
+            Download Revision Sheet
+          </button>
+          <span id="redemptionBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300">
+            Status: Critical Gap (Red)
+          </span>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/70 p-5 rounded-xl border border-slate-800 space-y-3">
+        <h4 class="text-sm font-semibold text-indigo-300">Easy-to-Grasp Summary</h4>
+        <ul id="easyPointsList" class="list-disc pl-5 space-y-2 text-sm text-slate-200"></ul>
+        <div id="analogyBox" class="mt-4 p-3 rounded-lg bg-indigo-950/50 border border-indigo-500/30 text-sm text-indigo-200"></div>
+      </div>
+
+      <div class="space-y-4">
+        <h4 class="text-md font-semibold text-emerald-400">Redemption Drill (Score 2/3+ to Flip Red → Green)</h4>
+        <div id="redemptionQuestions" class="space-y-4"></div>
+        <button id="verifyBtn" onclick="verifyRedemption()"
+          class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-semibold rounded-lg text-sm transition">
+          Verify Mastery & Update Radar
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let quizData = [];
+    let unitStats = {};
+    let activeRedUnit = "";
+    let redemptionData = [];
+    let currentLessonData = null;
+
+    async function uploadAndStart() {
+      const fileInput = document.getElementById("pdfInput");
+      if (!fileInput.files.length) return alert("Please select a PDF first.");
+
+      const btn = document.getElementById("generateBtn");
+      const loading = document.getElementById("loadingMsg");
+      btn.disabled = true;
+      loading.classList.remove("hidden");
+
+      // Reset downstream sections on fresh upload
+      document.getElementById("radarSection").classList.add("hidden");
+      document.getElementById("fixItSection").classList.add("hidden");
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      try {
+        const res = await fetch("/api/upload-and-generate", { method: "POST", body: formData });
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          throw new Error(`Server Error (${res.status}): ${rawText}`);
+        }
+        if (!res.ok) throw new Error(data.detail || "Failed to generate quiz");
+
+        quizData = data.questions;
+        renderQuiz();
+        document.getElementById("quizSection").classList.remove("hidden");
+        document.getElementById("statusBadge").textContent = "Step 2: Diagnostic Exam Active";
+        document.getElementById("quizSection").scrollIntoView({ behavior: "smooth" });
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+        loading.classList.add("hidden");
+      }
+    }
+
+    function renderQuiz() {
+      const container = document.getElementById("questionsContainer");
+      container.innerHTML = quizData.map((q, idx) => `
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span class="px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium">${q.unit}</span>
+            <span>Ref: Page ${q.page_ref}</span>
+          </div>
+          <p class="font-medium text-slate-100">${idx + 1}. ${q.question}</p>
+          <div class="space-y-2">
+            ${q.options.map((opt, optIdx) => `
+              <label class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-950/60 hover:bg-slate-800/70 cursor-pointer border border-slate-800/80">
+                <input type="radio" name="q_${idx}" value="${optIdx}" class="accent-indigo-500" />
+                <span class="text-sm text-slate-200">${opt}</span>
+              </label>
+            `).join("")}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function evaluateQuiz() {
+      unitStats = {};
+      const missedList = [];
+
+      quizData.forEach((q, idx) => {
+        const selected = document.querySelector(`input[name="q_${idx}"]:checked`);
+        const userAns = selected ? parseInt(selected.value) : -1;
+        const isCorrect = userAns === q.correct_index;
+
+        if (!unitStats[q.unit]) unitStats[q.unit] = { correct: 0, total: 0, missed: [] };
+        unitStats[q.unit].total += 1;
+        if (isCorrect) {
+          unitStats[q.unit].correct += 1;
+        } else {
+          unitStats[q.unit].missed.push(q);
+          missedList.push(q);
+        }
+      });
+
+      renderRadar(missedList);
+      document.getElementById("radarSection").classList.remove("hidden");
+      document.getElementById("statusBadge").textContent = "Step 3: Weak-Spot Radar Ready";
+      document.getElementById("radarSection").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function renderRadar(missedList) {
+      const grid = document.getElementById("radarGrid");
+      grid.innerHTML = Object.entries(unitStats).map(([unit, stat]) => {
+        const pct = Math.round((stat.correct / stat.total) * 100);
+        let tier = "Green (Ready)";
+        let colorClasses = "border-emerald-500/50 bg-emerald-950/20 text-emerald-300";
+        let actionBtn = `<span class="text-xs text-emerald-400">No remediation needed</span>`;
+
+        if (pct < 50) {
+          tier = "Red (Critical Gap)";
+          colorClasses = "border-rose-500/60 bg-rose-950/30 text-rose-300";
+          actionBtn = `<button onclick="launchFixIt('${unit.replace(/'/g, "\\'")}')" class="mt-3 w-full py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg">Fix Weak Spot Now</button>`;
+        } else if (pct < 80) {
+          tier = "Amber (Shaky)";
+          colorClasses = "border-amber-500/50 bg-amber-950/20 text-amber-300";
+          actionBtn = `<button onclick="launchFixIt('${unit.replace(/'/g, "\\'")}')" class="mt-3 w-full py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-lg">Review Unit</button>`;
+        }
+
+        return `
+          <div id="card_${unit}" class="p-5 rounded-xl border ${colorClasses} flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between text-xs font-bold uppercase mb-2">
+                <span>${tier}</span>
+                <span>${stat.correct}/${stat.total} (${pct}%)</span>
+              </div>
+              <h3 class="font-semibold text-base text-white">${unit}</h3>
+            </div>
+            ${actionBtn}
+          </div>
+        `;
+      }).join("");
+
+      const miscBox = document.getElementById("misconceptionList");
+      if (missedList.length === 0) {
+        miscBox.innerHTML = `<p class="text-emerald-400">Zero misconceptions detected—you aced every syllabus unit!</p>`;
+      } else {
+        miscBox.innerHTML = missedList.map(m => `
+          <div class="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
+            <p class="font-medium text-slate-200">Missed (${m.unit} • Page ${m.page_ref}): <span class="text-slate-400">${m.question}</span></p>
+            <p class="text-rose-300 text-xs mt-1"><strong>Why this trips students up:</strong> ${m.misconception_note}</p>
+          </div>
+        `).join("");
+      }
+    }
+
+    async function launchFixIt(unit) {
+      activeRedUnit = unit;
+      currentLessonData = null;
+      const missedTexts = unitStats[unit].missed.map(q => q.question);
+
+      // Reset UI cleanly before fetching
+      document.getElementById("fixItSection").classList.remove("hidden");
+      document.getElementById("downloadNotesBtn").classList.add("hidden");
+      document.getElementById("redemptionBadge").className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300";
+      document.getElementById("redemptionBadge").textContent = "Status: Critical Gap (Red)";
+      document.getElementById("fixItTitle").textContent = `Generating Fix-It Micro-Lesson for: ${unit}...`;
+      document.getElementById("easyPointsList").innerHTML = `<li class="text-slate-400 animate-pulse">Generating simplified study points...</li>`;
+      document.getElementById("analogyBox").textContent = "Building everyday analogy...";
+      document.getElementById("redemptionQuestions").innerHTML = `<p class="text-xs text-slate-400 animate-pulse">Preparing 3 redemption questions...</p>`;
+      document.getElementById("fixItSection").scrollIntoView({ behavior: "smooth" });
+
+      try {
+        const res = await fetch("/api/fix-weak-spot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ weak_units: [unit], missed_questions: missedTexts })
+        });
+
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          throw new Error(`Server Error (${res.status}): ${rawText}`);
+        }
+
+        if (!res.ok) throw new Error(data.detail || "Failed to generate micro-lesson");
+
+        currentLessonData = data;
+        redemptionData = data.redemption_quiz;
+
+        document.getElementById("fixItTitle").textContent = `Fix-It Micro-Lesson: ${data.unit}`;
+        document.getElementById("easyPointsList").innerHTML = data.easy_summary_points.map(p => `<li>${p}</li>`).join("");
+        document.getElementById("analogyBox").innerHTML = `<strong>Quick Analogy:</strong> ${data.analogy}`;
+        document.getElementById("downloadNotesBtn").classList.remove("hidden");
+
+        document.getElementById("redemptionQuestions").innerHTML = redemptionData.map((q, idx) => `
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <p class="text-sm font-medium">${idx + 1}. ${q.question}</p>
+            ${q.options.map((opt, optIdx) => `
+              <label class="flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer">
+                <input type="radio" name="red_${idx}" value="${optIdx}" class="accent-emerald-500" />
+                <span>${opt}</span>
+              </label>
+            `).join("")}
+          </div>
+        `).join("");
+      } catch (err) {
+        document.getElementById("fixItTitle").textContent = `Could Not Load Micro-Lesson: ${unit}`;
+        document.getElementById("easyPointsList").innerHTML = `<li class="text-rose-400">${err.message}</li>`;
+        document.getElementById("analogyBox").textContent = "Tip: If you saved main.py recently, uvicorn restarted and cleared the uploaded PDF from RAM. Re-upload your PDF at the top and try again.";
+        document.getElementById("redemptionQuestions").innerHTML = "";
+      }
+    }
+
+    function verifyRedemption() {
+      if (!redemptionData.length) return;
+      let score = 0;
+      const cards = document.querySelectorAll("#redemptionQuestions > div");
+
+      redemptionData.forEach((q, idx) => {
+        const sel = document.querySelector(`input[name="red_${idx}"]:checked`);
+        const userAns = sel ? parseInt(sel.value) : -1;
+        const card = cards[idx];
+
+        if (userAns === q.correct_index) {
+          score++;
+          card.className = "p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/60 space-y-2";
+        } else {
+          card.className = "p-4 rounded-xl bg-rose-950/30 border border-rose-500/60 space-y-2";
+        }
+      });
+
+      const badge = document.getElementById("redemptionBadge");
+
+      if (score >= 2) {
+        badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300";
+        badge.textContent = `Status: Mastered (Flipped to Green! ${score}/3)`;
+
+        const unitCard = document.getElementById(`card_${activeRedUnit}`);
+        if (unitCard) {
+          unitCard.className = "p-5 rounded-xl border border-emerald-500/50 bg-emerald-950/20 text-emerald-300 flex flex-col justify-between";
+          unitCard.querySelector("span").textContent = "Green (Mastered)";
+        }
+        document.getElementById("statusBadge").textContent = "Step 4: Weak Spot Mastered!";
+        alert(`Awesome! You scored ${score}/3. "${activeRedUnit}" just flipped from Red to Green!`);
+      } else {
+        badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300";
+        badge.textContent = `Status: Needs Retry (${score}/3 — Need 2/3 to Pass)`;
+        alert(`You scored ${score}/3. Red-bordered questions were missed—review the bullet points above and try again!`);
+      }
+    }
+
+    function downloadRevisionSheet() {
+      if (!currentLessonData) return;
+      const lines = [
+        `SYLLABUSPULSE — EASY REVISION SHEET`,
+        `Unit: ${currentLessonData.unit}`,
+        `==================================================\n`,
+        `KEY CONCEPTS IN SIMPLE TERMS:`,
+        ...currentLessonData.easy_summary_points.map((pt, i) => `${i + 1}. ${pt}`),
+        `\nMEMORABLE ANALOGY:`,
+        currentLessonData.analogy,
+        `\n==================================================`,
+        `Generated by SyllabusPulse Adaptive Weak-Spot Simulator`
+      ];
+
+      const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${currentLessonData.unit.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_revision_notes.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
